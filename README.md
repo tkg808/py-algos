@@ -1,0 +1,3 @@
+### DSA with Python
+
+This repo will be a record of anything I practice/study related to Data Structures and Algorithms (DSA) using Python. This will largely consist of my progression in solving Leetcode problems, but also any algorithms and data structures I find particularly interesting. Since this is meant to be a resource for learning, every implementation will include a detailed explanation to make it easier to understand.
