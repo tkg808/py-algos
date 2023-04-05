@@ -114,6 +114,9 @@ Space ->
 ========================================
 '''
 
+from math import ceil
+from typing import List
+
 class Solution:
     def minimizeArrayValue(self, nums: List[int]) -> int:
         ''' ===== Prefix Sum + Greedy ===== '''
