@@ -1,154 +1,105 @@
 '''
 ========================================
-1254. Number of Closed Islands
+20. Valid Parentheses
 ========================================
-Given a 2D grid consists of 0s (land) and 1s (water).  An island is a maximal 4-directionally connected group of 0s and a closed island is an island totally (all left, top, right, bottom) surrounded by 1s.
+Given a string s containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid.
 
-Return the number of closed islands.
-
-Constraints:
-1 <= grid.length, grid[0].length <= 100
-0 <= grid[i][j] <=1
+An input string is valid if:
+Open brackets must be closed by the same type of brackets.
+Open brackets must be closed in the correct order.
+Every close bracket has a corresponding open bracket of the same type.
 
 Example 1:
-Input: grid = [[1,1,1,1,1,1,1,0],
-               [1,0,0,0,0,1,1,0],
-               [1,0,1,0,1,1,1,0],
-               [1,0,0,0,0,1,0,1],
-               [1,1,1,1,1,1,1,0]]
-Output: 2
-Explanation: 
-Islands in gray are closed because they are completely surrounded by water (group of 1s).
+Input: s = "()"
+Output: true
 
 Example 2:
-Input: grid = [[0,0,1,0,0],
-               [0,1,0,1,0],
-               [0,1,1,1,0]]
-Output: 1
+Input: s = "()[]{}"
+Output: true
 
 Example 3:
-Input: grid = [[1,1,1,1,1,1,1],
-               [1,0,0,0,0,0,1],
-               [1,0,1,1,1,0,1],
-               [1,0,1,0,1,0,1],
-               [1,0,1,1,1,0,1],
-               [1,0,0,0,0,0,1],
-               [1,1,1,1,1,1,1]]
-Output: 2
+Input: s = "(]"
+Output: false
+Explanation: fails the first rule
+
+Example 4:
+Input: s = "([)]"
+Output: false
+Explanation: fails the second rule
+
+Constraints:
+1 <= s.length <= 104
+s consists of parentheses only '()[]{}'.
 
 ========================================
-Initial Thoughts
-- This is a typical searching problem, where we use depth-first search (DFS) or breadth-first search (BFS) to search from a starting point to all neighboring positions
-- But how to determine if a land cell is a part of a closed island or not?
-- Here are some different scenarios...
-    -- A closed island can have water in the middle of it's body
-        1 1 1 1 1
-        1 0 0 0 1
-        1 0 1 0 1
-        1 0 0 0 1
-        1 1 1 1 1
-    -- A closed island only cares about the 4 cardinals being water, it does not care about the diagonals
-        0 1 0
-        1 0 1
-        0 1 1
-    -- A closed island can exist within another closed island
-        1 1 1 1 1 1 1
-        1 0 0 0 0 0 1
-        1 0 1 1 1 0 1
-        1 0 1 0 1 0 1
-        1 0 1 1 1 0 1
-        1 0 0 0 0 0 1
-        1 1 1 1 1 1 1
-    -- A closed island does not necessarily have a square shape
-        1 1 1 1 1 1 1
-        1 0 0 0 0 0 1
-        1 0 0 0 0 0 1
-        1 0 0 0 1 1 1
-        1 0 0 0 0 0 1
-        1 0 0 0 0 1 1
-        1 1 1 1 1 1 1
-- Therefore, in order to determine if a land cell is a part of a closed island, we only need to validate that the land cell is not next to the boundary of the grid
+Notes
+- I will be referring to opening brackets as openers and closing brackets as closers
+- Consider the rules for valid input string, we observe invalid cases
+    -- s = ([] -> there is an unpaired opener (rule 1)
+    -- s = (] -> opener does not have closer of the same type (rule 1)
+    -- s = ([)] -> openers are not closed in the correct order (rule 2)
+    -- s = ()] -> rule 3 -> there is an unpaired closer (rule 3)
 
 ========================================
-Breadth-First Search Approach
-- Essentially, we will look for a land cell that could be part of a closed island we haven't searched already
-- Then search all adjacent land cells
-- We will assume the land cells are a part of a valid closed island unless we find a land cell on the boundary
-- Even if we find a land cell on the boundary, we still want to account for all adjacent cells so they aren't searched again
+Naive Approach
+- A naive solution may include using one loop to choose an opener and then using a nested loop to find a valid/matching closer
+- Using a nested loop would cost O(n**2), so we would want to explore other options that may be better 
+
+========================================
+Stack
+- The important thing to understand for this problem is how to handle nested pairs
+- Essentially, when we encounter a closer, it must be paired with the most recent unpaired opener
+- This detail is a clue to use a stack, since stacks will allow us keep track of all openers in an order that lets us easily get the most recently seen opener
+- Now, in order to validate if an opener and a closer are of the same type, we can take advantage of their place in the ASCII table
+    -- '(' and ')' are next to each other in the table, so we can say they have a distance of 1
+    -- There is a char between '[' and ']', so we would have to say they have a distance of 2
+    -- There is a char between '{' and '}', so we would have to say they have a distance of 2
+    -- Since s will only contain these six characters, we only need to confirm the distance between an opener and closer is either 1 or 2 on the ASCII table to validate the pair
 
 Algo
-- Use an integer to keep track of the number of closed islands found -> closed_islands
-- Use a hashset to keep track of land that has already been searched -> visited
-- Iterate through grid -> cell
-    - If cell is water -> Skip
-    - If cell is land and not already visited -> Start BFS
-        - Use a boolean to keep track of whether the island has been invalidated -> is_closed
-        - Use que to implement the BFS -> que
-            - If current cell is on boundary -> is_closed is now False
-            - Search in 4 directions
-                - If new cell is land and not already visited -> Add to search
-- After grid has been searched -> Return closed_islands
+- Use a stack to keep track of the unpaired openers -> stack
+- Iterate s -> char
+    - If char is an opener -> Add to stack
+    - If char is a closer ->
+        - Get top element from stack -> opener
+        - If there is no opener for this closer -> Return False
+        - If top of stack is a different type than closer -> Return False
+        - Otherwise -> Pair opener with closer -> Continue
+- If there are any unpaired openers -> Return False
+- Otherwise -> Return True
 
 Performance
-- Let m be the number of rows in grid
-- Let n be the number of columns in grid
-- Time ->
-    -- Iterating grid costs O(m * n)
-    -- Performing BFS on the grid can cost up to O(m * n), but using a hashset prevents redundant searches, so the cost is additive
-    -- Our operations on the hashset costs O(1)
-    -- Overall -> O(m * n)
-- Space ->
-    -- Using a que can cost up to O(m * n)
-    -- Using the hashset can cost up to O(m * n)
-    -- Overall -> O(m * n)
+- Let n be the length of s
+Time ->
+    -- Iterating s costs O(n)
+    -- Adding/removing top of stack costs O(1)
+    -- Overall -> O(n)
+Space ->
+    -- Using a stack can cost up to O(n)
+    -- Overall -> O(n)
 
 ========================================
 '''
 
-from collections import deque
-from typing import List
-
 class Solution:
-    def closedIsland(self, grid: List[List[int]]) -> int:
-        ''' ===== Breadth-First Search ===== '''
-        def is_closed_island(start_row, start_col):
-            nonlocal visited
-            is_closed = True
-            que = deque([(start_row, start_col)])
-            visited.add((start_row, start_col))
+    def isValid(self, s: str) -> bool:
+        ''' ===== Stack ===== '''
+        def is_valid_pair(opener, closer):
+            ascii_distance = ord(closer) - ord(opener)
+            return ascii_distance == 1 or ascii_distance == 2
 
-            while que:
-                row, col = que.popleft()
-                on_boundary = row == 0 or row == ROWS - 1 or col == 0 or col == COLS - 1
+        def is_opener(char):
+            return char == '(' or char == '[' or char == '{'
 
-                if on_boundary:
-                    is_closed = False
+        stack = []
 
-                for direction in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-                    new_row = row + direction[0]
-                    new_col = col + direction[1]
-                    is_valid = 0 <= new_row < ROWS and 0 <= new_col < COLS
-                    
-                    if is_valid:
-                        is_land = grid[new_row][new_col] == 0
-                        is_new = not (new_row, new_col) in visited
+        for char in s:
+            if is_opener(char):
+                stack.append(char)
+            else:
+                if not stack or not is_valid_pair(stack[-1], char):
+                    return False
+                
+                stack.pop()
 
-                        if is_land and is_new:
-                            que.append((new_row, new_col))
-                            visited.add((new_row, new_col))
-            return is_closed
-
-        ROWS = len(grid)
-        COLS = len(grid[0])
-        visited = set()
-        closed_islands = 0
-    
-        for row in range(ROWS):
-            for col in range(COLS):
-                is_land = grid[row][col] == 0
-                is_new = not (row, col) in visited
-
-                if is_land and is_new and is_closed_island(row, col):
-                    closed_islands += 1
-
-        return closed_islands
+        return True if not stack else False
