@@ -1,105 +1,89 @@
 '''
 ========================================
-20. Valid Parentheses
+2390. Removing Stars From a String
 ========================================
-Given a string s containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid.
+You are given a string s, which contains stars *.
 
-An input string is valid if:
-Open brackets must be closed by the same type of brackets.
-Open brackets must be closed in the correct order.
-Every close bracket has a corresponding open bracket of the same type.
+In one operation, you can:
+Choose a star in s.
+Remove the closest non-star character to its left, as well as remove the star itself.
+Return the string after all stars have been removed.
 
+Note:
+The input will be generated such that the operation is always possible.
+It can be shown that the resulting string will always be unique.
+ 
 Example 1:
-Input: s = "()"
-Output: true
+Input: s = "leet**cod*e"
+Output: "lecoe"
+Explanation: Performing the removals from left to right:
+- The closest character to the 1st star is 't' in "leet**cod*e". s becomes "lee*cod*e".
+- The closest character to the 2nd star is 'e' in "lee*cod*e". s becomes "lecod*e".
+- The closest character to the 3rd star is 'd' in "lecod*e". s becomes "lecoe".
+There are no more stars, so we return "lecoe".
 
 Example 2:
-Input: s = "()[]{}"
-Output: true
-
-Example 3:
-Input: s = "(]"
-Output: false
-Explanation: fails the first rule
-
-Example 4:
-Input: s = "([)]"
-Output: false
-Explanation: fails the second rule
+Input: s = "erase*****"
+Output: ""
+Explanation: The entire string is removed, so we return an empty string.
 
 Constraints:
-1 <= s.length <= 104
-s consists of parentheses only '()[]{}'.
-
-========================================
-Notes
-- I will be referring to opening brackets as openers and closing brackets as closers
-- Consider the rules for valid input string, we observe invalid cases
-    -- s = ([] -> there is an unpaired opener (rule 1)
-    -- s = (] -> opener does not have closer of the same type (rule 1)
-    -- s = ([)] -> openers are not closed in the correct order (rule 2)
-    -- s = ()] -> rule 3 -> there is an unpaired closer (rule 3)
+1 <= s.length <= 105
+s consists of lowercase English letters and stars *.
+The operation above can be performed on s.
 
 ========================================
 Naive Approach
-- A naive solution may include using one loop to choose an opener and then using a nested loop to find a valid/matching closer
-- Using a nested loop would cost O(n**2), so we would want to explore other options that may be better 
-
-========================================
-Stack
-- The important thing to understand for this problem is how to handle nested pairs
-- Essentially, when we encounter a closer, it must be paired with the most recent unpaired opener
-- This detail is a clue to use a stack, since stacks will allow us keep track of all openers in an order that lets us easily get the most recently seen opener
-- Now, in order to validate if an opener and a closer are of the same type, we can take advantage of their place in the ASCII table
-    -- '(' and ')' are next to each other in the table, so we can say they have a distance of 1
-    -- There is a char between '[' and ']', so we would have to say they have a distance of 2
-    -- There is a char between '{' and '}', so we would have to say they have a distance of 2
-    -- Since s will only contain these six characters, we only need to confirm the distance between an opener and closer is either 1 or 2 on the ASCII table to validate the pair
-
-Algo
-- Use a stack to keep track of the unpaired openers -> stack
-- Iterate s -> char
-    - If char is an opener -> Add to stack
-    - If char is a closer ->
-        - Get top element from stack -> opener
-        - If there is no opener for this closer -> Return False
-        - If top of stack is a different type than closer -> Return False
-        - Otherwise -> Pair opener with closer -> Continue
-- If there are any unpaired openers -> Return False
-- Otherwise -> Return True
+- You could probably use pointers to traverse s to find stars and remove the non-star to it's left directly, but operations directly on a string cost O(n) so the overall time would be quadratic
+- Since our input can be up to 10**5 characters long, we should explore other solutions before settling with this one
 
 Performance
 - Let n be the length of s
 Time ->
     -- Iterating s costs O(n)
-    -- Adding/removing top of stack costs O(1)
+    -- Modifying a string costs O(n)
+    -- Overall -> O(n**2)
+Space -> 
+    -- Using pointers costs O(1)
+    -- Overall -> O(1)
+
+
+========================================
+Stack
+- An important detail for this problem is that we have to be able to access the most recently seen non-star characters in the order they were seen
+    -- A stack is a perfect solution to this part of the problem
+- Then upon finding a star character, we have to remove the most recently seen non-star character
+
+Algo
+- Use a stack to keep track of non-star characters in the order they appear in s -> stack
+- Iterate s -> char
+    - If char is not a star -> Add it to stack
+    - If char is a star -> Remove the top element from stack
+- After iterating s -> Join and return the stack
+
+Performance
+- Let n be the length of s
+Time ->
+    -- Iterating s costs O(n)
+    -- Joining the stack costs O(n)
+    -- Operations on our stack costs O(1)
     -- Overall -> O(n)
-Space ->
-    -- Using a stack can cost up to O(n)
+Space -> 
+    -- Using a stack costs O(n)
     -- Overall -> O(n)
 
 ========================================
 '''
 
 class Solution:
-    def isValid(self, s: str) -> bool:
+    def removeStars(self, s: str) -> str:
         ''' ===== Stack ===== '''
-        def is_valid_pair(opener, closer):
-            ascii_distance = ord(closer) - ord(opener)
-            return ascii_distance == 1 or ascii_distance == 2
-
-        def is_opener(char):
-            return char == '(' or char == '[' or char == '{'
-
         stack = []
 
         for char in s:
-            if is_opener(char):
+            if char != '*':
                 stack.append(char)
             else:
-                if not stack or not is_valid_pair(stack[-1], char):
-                    return False
-                
                 stack.pop()
 
-        return True if not stack else False
+        return ''.join(stack)
