@@ -1,136 +1,134 @@
 '''
 ========================================
-71. Simplify Path
+946. Validate Stack Sequences
 ========================================
-Given a string path, which is an absolute path (starting with a slash '/') to a file or directory in a Unix-style file system, convert it to the simplified canonical path.
-
-In a Unix-style file system, a period '.' refers to the current directory, a double period '..' refers to the directory up a level, and any multiple consecutive slashes (i.e. '//') are treated as a single slash '/'. For this problem, any other format of periods such as '...' are treated as file/directory names.
-
-The canonical path should have the following format:
-The path starts with a single slash '/'.
-Any two directories are separated by a single slash '/'.
-The path does not end with a trailing '/'.
-The path only contains the directories on the path from the root directory to the target file or directory (i.e., no period '.' or double period '..')
-Return the simplified canonical path.
+Given two integer arrays pushed and popped each with distinct values, return true if this could have been the result of a sequence of push and pop operations on an initially empty stack, or false otherwise.
 
 Example 1:
-Input: path = "/home/"
-Output: "/home"
-Explanation: Note that there is no trailing slash after the last directory name.
+Input: pushed = [1,2,3,4,5], popped = [4,5,3,2,1]
+Output: true
+Explanation: We might do the following sequence:
+push(1), push(2), push(3), push(4),
+pop() -> 4,
+push(5),
+pop() -> 5, pop() -> 3, pop() -> 2, pop() -> 1
 
 Example 2:
-Input: path = "/../"
-Output: "/"
-Explanation: Going one level up from the root directory is a no-op, as the root level is the highest level you can go.
+Input: pushed = [1,2,3,4,5], popped = [4,3,5,1,2]
+Output: false
+Explanation: 1 cannot be popped before 2. 
 
-Example 3:
-Input: path = "/home//foo/"
-Output: "/home/foo"
-Explanation: In the canonical path, multiple consecutive slashes are replaced by a single one.
- 
 Constraints:
-1 <= path.length <= 3000
-path consists of English letters, digits, period '.', slash '/' or '_'.
-path is a valid absolute Unix path.
+1 <= pushed.length <= 1000
+0 <= pushed[i] <= 1000
+All the elements of pushed are unique.
+popped.length == pushed.length
+popped is a permutation of pushed.
 
 ========================================
-Initial Approach *** WRONG ***
-- The problem is asking me to take the absolute path and convert it to it's canonical path
-- Through inspecting the format of a canonical, I can see that it has an alternating pattern of ->  '/' + directory name
-- So if I can parse the directory names from the input path, I can construct the canonical path for output
-- Note that any character that is not a '.' or '/' is considered part of a directory name
-
-Algo 
-- Use an array to keep track of directory names -> directories
-- Use a pointer to keep track of the starting index of a directory name -> start
-- Iterate path to find directory names -> end
-    -- Cases
-        ---1 start is a dot or slash
-            ---- Regardless of what end is, this can never form a valid directory name
-        ---2 start is not a dot or slash AND end is a dot or slash
-            ---- We have found the end of the directory name
-        ---3 start is not a dot or slash AND end is not a dot or slash
-            ---- We have a directory and we are looking for the ending index of it
-    -- For case 1 -> Move start pointer to end pointer
-    -- For case 2 -> Add the pointers to directories as a tuple -> Then move start pointer to end pointer
-    -- For case 3 -> Continue searching for the ending index
-- After path has been traversed, if there were no directories founnd -> Return '/'
-- Otherwise, join directories by alterating '/' + directory name -> Return
-
-Performance
-- Let n be the length of path
-- Let m be the max length of a directory
-- Let k be the number of directories
-Time ->
-    -- Iterating path costs O(n)
-    -- Storing pointers costs O(1)
-    -- Creating each directory name string costs O(m * k)
-    -- Overall -> O(n + m*k)
-Space ->
-    -- Storing pointers for each directory costs O(k)
-    -- Creating each directory name string costs O(m * k)
-    -- Overall -> O(m * k)
+Initial Thoughts
+- My first instinct after seeing two correlating arrays was to use pointers to traverse each input array while accounting for push and pop operations
+    -- This is mostly hopeful thinking, since using pointers would lower the cost for space
+    -- However, only using pointers would not allow us to execute correct pop operations on the sequence
+    -- Therefore, this approach would not be effective for this problem
 
 ========================================
 Stack
-- The initial solution was incorrect because I misunderstood the problem
-- Consider the following example:
-    -- path = /a/b/../c/
-    -- The initial approach would return -> /a/b/c
-    -- But the correct output should be -> /a/c
-- When initially trying to understand the problem, I didn't consider that this was the direction the problem was going
-- From my experience importing files in ReactJS or NodeJS, something like '/a/c' would assume that there exists a directory/file 'c' in directory 'a'...so for '/a/b/../c/', something like '../../c' would be expected
-- Regardless, I now realize that we can't simply ignore all dots
-- Consider the following cases for dots:
-    --1 Single dot -> /a/b/./c/
-        --- Stay in parent/left directory -> Ignore the dot
-        --- Output -> /a/b/c
-    --2 Double dots -> /a/b/../c/
-        --- Remove parent/left directory
-        --- Output -> /a/c
-    --3 All other forms of dots are treated as file/directory name
-        --- More than two dots -> /a/b/.../c
-        --- Dots not surrounded by slashes -> /a/b../c
-- With this information, I now understand that the crux of the problem is accounting for case 2
-- In order to handle case 2, I need to be able remove the correct parent directory when '/../' is encountered, even when the directory is not adjacent to the dots
-- In order to know which parent directory is the correct one to remove, I need to keep track of the directories in the order they appear
-- These are key indicators that a stack would be a good option for this problem
+- Although my first instinct was not correct, it did make me aware of two key requirements for this problem:
+    --1 I will have to keep track of the values in a sequential order
+    --2 I will have to maintain the order by adding/removing values to/from the end
+- From this insight, I realize that a stack is an ideal choice
+- Essentially, I can reproduce the sequence with a stack, and check for any invalidating cases throughout
+- This approach looks at the problem in two phases
+    -- The first phase -> Accounts for all push and pop operations until all pop values have been accounted for
+    -- The second phase -> Accounts for the remaining values in the stack and remaining pop values 
 
 Algo
-- Use a stack to keep track of the directories in the order they are seen -> stack
-- Split the path by slashes and iterate -> section
-    - If section is empty or a single dot -> Skip
-    - If section is double dots -> Remove most recently seen parent directory if it exists
-    - Otherwise -> Add section to stack
-- After the loop -> Join directory names by alterating '/' + directory name -> Return
+- Use a helper function to the first phase
+    -- Use a stack to keep track of the sequence -> stack
+    -- Use a pointer to keep track of the current index in popped -> curr_pop
+    -- Iterate pushed -> push_val
+        --- Check if push_val matches the value at curr_pop
+            ---- Skip the formalities of pushing then popping -> Increment curr_pop -> Continue
+        --- If not, loop to check for consecutive pop operations
+            ---- Pop from stack -> Increment curr_pop
+        --- Once the pop loop is finished -> Add push_val to stack
+    -- Return the state of the stack and curr_pop to be used for the next phase
+- Use a helper function
+- If curr_push has reached the end and we can't pop any more values from popped -> Return False
+- Otherwise -> Return True
 
 Performance
-- Let n be the length of path
+- Let n be the length of pushed/popped
 Time ->
-    -- Splitting path costs O(n)
+    -- Iterating the input arrays costs O(n)
     -- Operations on a stack costs O(1)
-    -- The sum of all individual directory names will never exceed n, so the cost to build the strings is no more than O(n)
-    -- Overall -> O(n + n) -> O(n)
-Space ->
-    -- Using a stack to store the directory names can cost up to O(n)
     -- Overall -> O(n)
+Space ->
+    -- Using a stack to verify the sequence costs O(n)
+    -- Overall -> O(n)
+
+========================================
+Stack - Clean
+- Although the previous approach is correct and optimal in terms of time/space, one could argue that it is an indirect solution
+- The reason it is indirect stems from the decision to check if push_val matches the value at curr_pop
+    -- In doing so, push_val gets added to the stack after we handle consecutive pop operations
+    -- Which means that after the last push_val is added to the stack, the sequence is not accurate, which prompts a second phase of validating the remaining pop operations
+- The key detail that I missed was that push_val should always be added to the stack before handling pop operations
+- To make sense of this, consider the following
+    -- Since there is nothing to pop from an empty stack, we'll say an empty stack is a valid sequence
+    -- Adding push_val to a valid sequence potentially invalidates the sequence
+    -- We use pop operations to re-validate the sequence
+    -- Then we move onto the next push_val
+    -- Therefore, we can be confident that at the beginning of each iteration, we have a valid sequence and that push_val should be added first
 
 ========================================
 '''
 
+from typing import List
+
 class Solution:
-    def simplifyPath(self, path: str) -> str:
+    def validateStackSequences(self, pushed: List[int], popped: List[int]) -> bool:
         ''' ===== Stack ===== '''
-        stack = []
-
-        for section in path.split('/'):
-            if not section or section == '.':
-                continue
-
-            if section == '..':
-                if stack:
-                    stack.pop()
-            else:
-                stack.append(section)
+        # def traverse_pushed():
+        #     stack = []
+        #     curr_pop = 0
             
-        return '/' + '/'.join(stack)
+        #     for push_val in pushed:
+        #         if push_val == popped[curr_pop]:
+        #             curr_pop += 1
+        #             continue
+
+        #         while stack and stack[-1] == popped[curr_pop]:
+        #             stack.pop()
+        #             curr_pop += 1
+                
+        #         stack.append(push_val)
+        #     return (stack, curr_pop)
+
+        # def handle_leftovers(sequence, pop_index):
+        #     while sequence and pop_index < len(popped):
+        #         if stack.pop() != popped[pop_index]:
+        #             return False
+
+        #         pop_index += 1
+
+        #     return pop_index == len(popped) and not stack
+
+        # stack, index = traverse_pushed()
+        # is_valid_sequence = handle_leftovers(stack, index)
+
+        # return is_valid_sequence
+
+        ''' ===== Stack - Clean ===== '''
+        stack = []
+        curr_pop = 0
+        
+        for push_val in pushed:
+            stack.append(push_val)
+
+            while stack and stack[-1] == popped[curr_pop]:
+                stack.pop()
+                curr_pop += 1
+
+        return curr_pop == len(popped)
