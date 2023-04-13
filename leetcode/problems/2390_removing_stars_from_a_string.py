@@ -47,7 +47,6 @@ Space ->
     -- Using pointers costs O(1)
     -- Overall -> O(1)
 
-
 ========================================
 Stack
 - An important detail for this problem is that we have to be able to access the most recently seen non-star characters in the order they were seen
